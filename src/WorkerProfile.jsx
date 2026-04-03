@@ -1,9 +1,4 @@
 // @ts-nocheck
-// ─────────────────────────────────────────────────────────────────────────────
-// TASQNOW WORKER PROFILE
-// Drop into src/WorkerProfile.jsx
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { useState, useEffect, useRef } from "react";
 import {
   supabase, fetchFullProfile, updateProfile, uploadImage,
@@ -61,19 +56,20 @@ const Modal = ({ title, onClose, children }) => (
     <div style={{ background:"var(--card)", borderRadius:16, padding:24, width:"100%", maxWidth:480, boxShadow:"0 24px 64px rgba(0,0,0,0.3)", maxHeight:"85vh", overflowY:"auto" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
         <div style={{ fontWeight:700, fontSize:17, color:"var(--text)" }}>{title}</div>
-        <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:"var(--text3)", lineHeight:1 }}>×</button>
+        <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", fontSize:22, color:"var(--text3)", lineHeight:1 }}>×</button>
       </div>
       {children}
     </div>
   </div>
 );
 
-// TasqScore badge with color coding
+// ── TASQSCORE BADGE ───────────────────────────────────────────────────────────
+
 const TasqScoreBadge = ({ score, size="md" }) => {
-  const color = score >= 70 ? "#10B981" : score >= 40 ? "#F59E0B" : "#9CA3AF";
-  const bg = score >= 70 ? "#D1FAE5" : score >= 40 ? "#FEF3C7" : "var(--bg3)";
-  const label = score >= 70 ? "Top Rated" : score >= 40 ? "Good" : "New";
-  const big = size === "lg";
+  const color = score>=70?"#10B981":score>=40?"#F59E0B":"#9CA3AF";
+  const bg = score>=70?"#D1FAE5":score>=40?"#FEF3C7":"var(--bg3)";
+  const label = score>=70?"Top Rated":score>=40?"Good":"New";
+  const big = size==="lg";
   return (
     <div style={{ background:bg, borderRadius:12, padding:big?"14px 18px":"8px 12px", textAlign:"center", flexShrink:0 }}>
       <div style={{ fontWeight:800, fontSize:big?32:20, color, lineHeight:1 }}>{score}</div>
@@ -83,7 +79,6 @@ const TasqScoreBadge = ({ score, size="md" }) => {
   );
 };
 
-// Star rating display
 const Stars = ({ rating, max=5 }) => (
   <div style={{ display:"flex", gap:2 }}>
     {Array.from({length:max}).map((_,i)=>(
@@ -92,6 +87,63 @@ const Stars = ({ rating, max=5 }) => (
   </div>
 );
 
+// ── MESSAGE MODAL ─────────────────────────────────────────────────────────────
+
+function MessageModal({ worker, currentUser, onClose, isHire }) {
+  const [text, setText] = useState(isHire ? `Hi ${worker.name}, I'd like to hire you for a job. Are you available?` : "");
+  const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  const send = async () => {
+    if (!text.trim()) return;
+    setSending(true);
+    try {
+      await sendMessage(currentUser.id, worker.id, text);
+      setSent(true);
+    } catch(e) { console.error(e); }
+    finally { setSending(false); }
+  };
+
+  return (
+    <Modal title={isHire ? `Hire ${worker.name}` : `Message ${worker.name}`} onClose={onClose}>
+      {sent ? (
+        <div style={{ textAlign:"center", padding:"20px 0" }}>
+          <div style={{ fontSize:40, marginBottom:12 }}>✅</div>
+          <div style={{ fontWeight:700, fontSize:16, color:"var(--text)", marginBottom:8 }}>Message sent!</div>
+          <div style={{ color:"var(--text2)", fontSize:14, marginBottom:16 }}>{worker.name} will reply via Messages.</div>
+          <Btn onClick={onClose} full>Done</Btn>
+        </div>
+      ) : (
+        <>
+          <div style={{ display:"flex", gap:12, alignItems:"center", background:"var(--bg2)", borderRadius:10, padding:12, marginBottom:16 }}>
+            <div style={{ width:44, height:44, borderRadius:"50%", background:ORANGE, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:700, fontSize:16, flexShrink:0 }}>
+              {(worker.name||"U").slice(0,2).toUpperCase()}
+            </div>
+            <div>
+              <div style={{ fontWeight:700, fontSize:14, color:"var(--text)" }}>{worker.name}</div>
+              <div style={{ fontSize:12, color:"var(--text2)" }}>{worker.skills?.slice(0,2).join(" · ") || "Gig worker"} · {worker.location}</div>
+            </div>
+          </div>
+          <Input
+            label="Your message"
+            placeholder={`Write your message to ${worker.name}...`}
+            value={text}
+            onChange={e=>setText(e.target.value)}
+            multiline
+            rows={4}
+          />
+          <div style={{ display:"flex", gap:10 }}>
+            <Btn variant="ghost" onClick={onClose} full>Cancel</Btn>
+            <Btn onClick={send} full disabled={sending||!text.trim()} style={{ background:isHire?TEAL:ORANGE }}>
+              {sending?"Sending...":isHire?"Send Hire Request":"Send Message"}
+            </Btn>
+          </div>
+        </>
+      )}
+    </Modal>
+  );
+}
+
 // ── WORKER PROFILE VIEW ───────────────────────────────────────────────────────
 
 export function WorkerProfileView({ userId, currentUser, onBack, onMessage }) {
@@ -99,6 +151,8 @@ export function WorkerProfileView({ userId, currentUser, onBack, onMessage }) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("portfolio");
   const [showRecommendModal, setShowRecommendModal] = useState(false);
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [showHireModal, setShowHireModal] = useState(false);
   const [recText, setRecText] = useState("");
   const [recRating, setRecRating] = useState(5);
   const [submittingRec, setSubmittingRec] = useState(false);
@@ -106,10 +160,13 @@ export function WorkerProfileView({ userId, currentUser, onBack, onMessage }) {
   const isOwn = currentUser?.id === userId;
 
   useEffect(()=>{
-    fetchFullProfile(userId).then(p=>{ setProfile(p); setLoading(false); }).catch(()=>setLoading(false));
+    setLoading(true);
+    fetchFullProfile(userId)
+      .then(p=>{ setProfile(p); setLoading(false); })
+      .catch(()=>setLoading(false));
   }, [userId]);
 
-  const submitRecommendation = async () => {
+  const submitRecommendation = async()=>{
     if (!recText.trim()) return;
     setSubmittingRec(true);
     try {
@@ -118,8 +175,8 @@ export function WorkerProfileView({ userId, currentUser, onBack, onMessage }) {
       setRecText("");
       const updated = await fetchFullProfile(userId);
       setProfile(updated);
-    } catch(e) { console.error(e); }
-    finally { setSubmittingRec(false); }
+    } catch(e){ console.error(e); }
+    finally{ setSubmittingRec(false); }
   };
 
   if (loading) return <Spinner/>;
@@ -127,67 +184,75 @@ export function WorkerProfileView({ userId, currentUser, onBack, onMessage }) {
 
   const colors = ["#F07320","#0A66C2","#10B981","#8B5CF6","#EF4444","#F59E0B"];
   const color = colors[profile.name?.charCodeAt(0) % colors.length] || ORANGE;
-  const avgRating = profile.ratings?.length ? (profile.ratings.reduce((s,r)=>s+r.score,0)/profile.ratings.length).toFixed(1) : null;
+  const avgRating = profile.ratings?.length
+    ? (profile.ratings.reduce((s,r)=>s+r.score,0)/profile.ratings.length).toFixed(1)
+    : null;
 
   return (
     <div style={{ maxWidth:680, margin:"0 auto", padding:"0 16px 100px", animation:"fadeIn .2s ease" }}>
-      {/* Back button */}
-      <button onClick={onBack} style={{ display:"flex", alignItems:"center", gap:6, background:"none", border:"none", cursor:"pointer", color:"var(--text2)", fontFamily:FONT, padding:"20px 0 12px", fontSize:14, fontWeight:600 }}>
-        ← Back
+
+      {/* ── BACK BUTTON ── */}
+      <button onClick={onBack}
+        style={{ display:"flex", alignItems:"center", gap:8, background:"none", border:"none", cursor:"pointer", color:ORANGE, fontFamily:FONT, padding:"18px 0 12px", fontSize:15, fontWeight:700 }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={ORANGE} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m15 18-6-6 6-6"/>
+        </svg>
+        Back
       </button>
 
-      {/* Cover photo + Avatar */}
+      {/* ── COVER + AVATAR ── */}
       <div style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:16, overflow:"hidden", marginBottom:12 }}>
-        {/* Cover */}
-        <div style={{ height:140, background:profile.cover_url?`url(${profile.cover_url}) center/cover`:`linear-gradient(135deg, ${color}cc 0%, ${color}66 100%)`, position:"relative" }}>
+        <div style={{ height:130, background:profile.cover_url?`url(${profile.cover_url}) center/cover`:`linear-gradient(135deg, ${color}cc 0%, ${color}55 100%)`, position:"relative" }}>
           {isOwn && <CoverUploader userId={userId} onUpload={url=>setProfile(p=>({...p,cover_url:url}))}/>}
         </div>
 
         <div style={{ padding:"0 20px 20px" }}>
-          {/* Avatar row */}
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginTop:-44 }}>
             <div style={{ position:"relative" }}>
-              <div style={{ width:80, height:80, borderRadius:"50%", background:profile.avatar_url?"transparent":color, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:800, fontSize:28, border:"3px solid var(--card)", overflow:"hidden", flexShrink:0 }}>
-                {profile.avatar_url ? <img src={profile.avatar_url} style={{ width:"100%", height:"100%", objectFit:"cover" }}/> : (profile.name||"U").slice(0,2).toUpperCase()}
+              <div style={{ width:80, height:80, borderRadius:"50%", background:profile.avatar_url?"transparent":color, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:800, fontSize:28, border:"3px solid var(--card)", overflow:"hidden" }}>
+                {profile.avatar_url
+                  ? <img src={profile.avatar_url} style={{ width:"100%", height:"100%", objectFit:"cover" }}/>
+                  : (profile.name||"U").slice(0,2).toUpperCase()}
               </div>
               {isOwn && <AvatarUploader userId={userId} onUpload={url=>setProfile(p=>({...p,avatar_url:url}))}/>}
             </div>
-            <TasqScoreBadge score={profile.tasq_score||0} size="md"/>
+            <TasqScoreBadge score={profile.tasq_score||0}/>
           </div>
 
-          {/* Name + info */}
           <div style={{ marginTop:10 }}>
             <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
               <div style={{ fontWeight:800, fontSize:22, color:"var(--text)" }}>{profile.name}</div>
               {profile.is_id_verified && (
-                <span style={{ background:"#DBEAFE", color:"#1D4ED8", fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:100, display:"flex", alignItems:"center", gap:4 }}>
-                  ✓ ID Verified
-                </span>
+                <span style={{ background:"#DBEAFE", color:"#1D4ED8", fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:100 }}>✓ ID Verified</span>
               )}
             </div>
             <div style={{ fontSize:14, color:"var(--text2)", marginTop:3 }}>
               {profile.skills?.slice(0,3).join(" · ") || "Gig worker"}
             </div>
             <div style={{ display:"flex", gap:16, marginTop:6, flexWrap:"wrap" }}>
-              {profile.location && <span style={{ fontSize:13, color:"var(--text3)", display:"flex", alignItems:"center", gap:4 }}>📍 {profile.location}</span>}
+              {profile.location && <span style={{ fontSize:13, color:"var(--text3)" }}>📍 {profile.location}</span>}
               {avgRating && <span style={{ fontSize:13, color:"#F59E0B", fontWeight:600 }}>★ {avgRating} ({profile.ratings.length} reviews)</span>}
               {profile.total_jobs > 0 && <span style={{ fontSize:13, color:"var(--text3)" }}>✅ {profile.total_jobs} jobs done</span>}
             </div>
           </div>
 
-          {/* Bio */}
           {profile.bio && (
             <div style={{ fontSize:14, color:"var(--text2)", lineHeight:1.7, marginTop:12, padding:"12px 0", borderTop:"1px solid var(--border)" }}>
               {profile.bio}
             </div>
           )}
 
-          {/* Action buttons */}
-          {!isOwn && (
-            <div style={{ display:"flex", gap:10, marginTop:14 }}>
-              <Btn onClick={()=>onMessage(profile)} full>💬 Message</Btn>
-              <Btn variant="teal" onClick={()=>onMessage(profile, true)} full>🤝 Hire Now</Btn>
-              {currentUser && <Btn variant="ghost" onClick={()=>setShowRecommendModal(true)}>✍️ Recommend</Btn>}
+          {/* ── ACTION BUTTONS ── */}
+          {!isOwn && currentUser && (
+            <div style={{ display:"flex", gap:10, marginTop:14, flexWrap:"wrap" }}>
+              <Btn onClick={()=>setShowMessageModal(true)} full>💬 Message</Btn>
+              <Btn variant="teal" onClick={()=>setShowHireModal(true)} full>🤝 Hire Now</Btn>
+              <Btn variant="ghost" onClick={()=>setShowRecommendModal(true)}>✍️ Recommend</Btn>
+            </div>
+          )}
+          {!isOwn && !currentUser && (
+            <div style={{ marginTop:14, background:"var(--bg2)", borderRadius:10, padding:"12px 14px", fontSize:13, color:"var(--text2)", textAlign:"center" }}>
+              <a href="#" style={{ color:ORANGE, fontWeight:700 }}>Sign in</a> to message or hire this worker
             </div>
           )}
           {isOwn && (
@@ -198,7 +263,7 @@ export function WorkerProfileView({ userId, currentUser, onBack, onMessage }) {
         </div>
       </div>
 
-      {/* Stats row */}
+      {/* ── STATS ROW ── */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10, marginBottom:12 }}>
         {[
           { n:profile.portfolio?.length||0, l:"Portfolio" },
@@ -213,14 +278,9 @@ export function WorkerProfileView({ userId, currentUser, onBack, onMessage }) {
         ))}
       </div>
 
-      {/* Tabs */}
+      {/* ── TABS ── */}
       <div style={{ display:"flex", gap:0, background:"var(--bg3)", borderRadius:10, padding:4, marginBottom:16 }}>
-        {[
-          ["portfolio","📸 Portfolio"],
-          ["experience","💼 Experience"],
-          ["certs","🏅 Certificates"],
-          ["reviews","⭐ Reviews"],
-        ].map(([id,l])=>(
+        {[["portfolio","📸 Portfolio"],["experience","💼 Experience"],["certs","🏅 Certificates"],["reviews","⭐ Reviews"]].map(([id,l])=>(
           <button key={id} onClick={()=>setActiveTab(id)}
             style={{ flex:1, padding:"8px 4px", borderRadius:7, border:"none", background:activeTab===id?"var(--card)":"transparent", color:activeTab===id?"var(--text)":"var(--text2)", fontWeight:600, fontSize:11, cursor:"pointer", fontFamily:FONT, transition:"all .15s" }}>
             {l}
@@ -228,7 +288,7 @@ export function WorkerProfileView({ userId, currentUser, onBack, onMessage }) {
         ))}
       </div>
 
-      {/* Portfolio tab */}
+      {/* ── PORTFOLIO ── */}
       {activeTab==="portfolio" && (
         <div>
           {isOwn && <PortfolioUploader userId={userId} onAdd={p=>setProfile(prev=>({...prev,portfolio:[p,...prev.portfolio]}))}/>}
@@ -249,13 +309,11 @@ export function WorkerProfileView({ userId, currentUser, onBack, onMessage }) {
                 </div>
               ))}
             </div>
-          ) : (
-            <EmptyState icon="📸" text="No portfolio photos yet" sub={isOwn?"Add photos of your work to attract employers":""} />
-          )}
+          ) : <EmptyState icon="📸" text="No portfolio photos yet" sub={isOwn?"Add photos of your work to attract employers":""}/>}
         </div>
       )}
 
-      {/* Experience tab */}
+      {/* ── EXPERIENCE ── */}
       {activeTab==="experience" && (
         <div>
           {isOwn && <AddWorkHistoryForm userId={userId} onAdd={e=>setProfile(prev=>({...prev,workHistory:[e,...prev.workHistory]}))}/>}
@@ -266,9 +324,7 @@ export function WorkerProfileView({ userId, currentUser, onBack, onMessage }) {
                   <div>
                     <div style={{ fontWeight:700, fontSize:15, color:"var(--text)" }}>{w.title}</div>
                     <div style={{ fontSize:13, color:ORANGE, fontWeight:600, marginTop:2 }}>{w.company}</div>
-                    <div style={{ fontSize:12, color:"var(--text3)", marginTop:2 }}>
-                      {w.start_date} → {w.current?"Present":w.end_date} · {w.location}
-                    </div>
+                    <div style={{ fontSize:12, color:"var(--text3)", marginTop:2 }}>{w.start_date} → {w.current?"Present":w.end_date} {w.location&&`· ${w.location}`}</div>
                     {w.description && <div style={{ fontSize:13, color:"var(--text2)", marginTop:8, lineHeight:1.6 }}>{w.description}</div>}
                   </div>
                   {isOwn && (
@@ -282,7 +338,7 @@ export function WorkerProfileView({ userId, currentUser, onBack, onMessage }) {
         </div>
       )}
 
-      {/* Certifications tab */}
+      {/* ── CERTIFICATIONS ── */}
       {activeTab==="certs" && (
         <div>
           {isOwn && <AddCertForm userId={userId} onAdd={c=>setProfile(prev=>({...prev,certifications:[c,...prev.certifications]}))}/>}
@@ -306,35 +362,35 @@ export function WorkerProfileView({ userId, currentUser, onBack, onMessage }) {
         </div>
       )}
 
-      {/* Reviews tab */}
+      {/* ── REVIEWS ── */}
       {activeTab==="reviews" && (
         <div>
-          {/* Overall rating */}
-          {profile.ratings?.length > 0 && (
-            <div style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:12, padding:16, marginBottom:12, display:"flex", gap:16, alignItems:"center" }}>
-              <div style={{ textAlign:"center" }}>
-                <div style={{ fontWeight:800, fontSize:36, color:"#F59E0B", lineHeight:1 }}>{avgRating}</div>
-                <Stars rating={Math.round(parseFloat(avgRating))}/>
-                <div style={{ fontSize:12, color:"var(--text3)", marginTop:4 }}>{profile.ratings.length} ratings</div>
-              </div>
-              <div style={{ flex:1 }}>
-                {[5,4,3,2,1].map(n=>{
-                  const count = profile.ratings.filter(r=>r.score===n).length;
-                  const pct = profile.ratings.length ? (count/profile.ratings.length)*100 : 0;
-                  return (
-                    <div key={n} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:3 }}>
-                      <span style={{ fontSize:11, color:"var(--text3)", width:8 }}>{n}</span>
-                      <div style={{ flex:1, height:6, background:"var(--bg3)", borderRadius:3, overflow:"hidden" }}>
-                        <div style={{ width:`${pct}%`, height:"100%", background:"#F59E0B", borderRadius:3 }}/>
+          {profile.ratings?.length > 0 && (() => {
+            const avg = (profile.ratings.reduce((s,r)=>s+r.score,0)/profile.ratings.length).toFixed(1);
+            return (
+              <div style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:12, padding:16, marginBottom:12, display:"flex", gap:16, alignItems:"center" }}>
+                <div style={{ textAlign:"center" }}>
+                  <div style={{ fontWeight:800, fontSize:36, color:"#F59E0B", lineHeight:1 }}>{avg}</div>
+                  <Stars rating={Math.round(parseFloat(avg))}/>
+                  <div style={{ fontSize:12, color:"var(--text3)", marginTop:4 }}>{profile.ratings.length} ratings</div>
+                </div>
+                <div style={{ flex:1 }}>
+                  {[5,4,3,2,1].map(n=>{
+                    const count = profile.ratings.filter(r=>r.score===n).length;
+                    const pct = profile.ratings.length?(count/profile.ratings.length)*100:0;
+                    return (
+                      <div key={n} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
+                        <span style={{ fontSize:11, color:"var(--text3)", width:8 }}>{n}</span>
+                        <div style={{ flex:1, height:6, background:"var(--bg3)", borderRadius:3, overflow:"hidden" }}>
+                          <div style={{ width:`${pct}%`, height:"100%", background:"#F59E0B", borderRadius:3 }}/>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
-
-          {/* Recommendations */}
+            );
+          })()}
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
             {profile.recommendations?.length ? profile.recommendations.map(r=>(
               <div key={r.id} style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:12, padding:16 }}>
@@ -353,12 +409,18 @@ export function WorkerProfileView({ userId, currentUser, onBack, onMessage }) {
                 <div style={{ fontSize:14, color:"var(--text2)", lineHeight:1.7, fontStyle:"italic" }}>"{r.text}"</div>
                 <div style={{ fontSize:11, color:"var(--text3)", marginTop:8 }}>{new Date(r.created_at).toLocaleDateString('en-UG',{day:'numeric',month:'short',year:'numeric'})}</div>
               </div>
-            )) : <EmptyState icon="⭐" text="No reviews yet" sub={isOwn?"Complete jobs to earn reviews from employers":""}/>}
+            )) : <EmptyState icon="⭐" text="No reviews yet" sub={isOwn?"Complete jobs to earn reviews":""}/>}
           </div>
         </div>
       )}
 
-      {/* Recommend modal */}
+      {/* ── MODALS ── */}
+      {showMessageModal && profile && currentUser && (
+        <MessageModal worker={profile} currentUser={currentUser} onClose={()=>setShowMessageModal(false)} isHire={false}/>
+      )}
+      {showHireModal && profile && currentUser && (
+        <MessageModal worker={profile} currentUser={currentUser} onClose={()=>setShowHireModal(false)} isHire={true}/>
+      )}
       {showRecommendModal && (
         <Modal title="Write a Recommendation" onClose={()=>setShowRecommendModal(false)}>
           <div style={{ marginBottom:14 }}>
@@ -366,7 +428,7 @@ export function WorkerProfileView({ userId, currentUser, onBack, onMessage }) {
             <div style={{ display:"flex", gap:8 }}>
               {[1,2,3,4,5].map(n=>(
                 <button key={n} onClick={()=>setRecRating(n)}
-                  style={{ fontSize:24, background:"none", border:"none", cursor:"pointer", opacity:n<=recRating?1:0.3, transition:"opacity .15s" }}>★</button>
+                  style={{ fontSize:28, background:"none", border:"none", cursor:"pointer", opacity:n<=recRating?1:0.25, transition:"opacity .15s" }}>★</button>
               ))}
             </div>
           </div>
@@ -378,7 +440,7 @@ export function WorkerProfileView({ userId, currentUser, onBack, onMessage }) {
   );
 }
 
-// ── EDIT PROFILE SECTION ──────────────────────────────────────────────────────
+// ── EDIT PROFILE ──────────────────────────────────────────────────────────────
 
 function EditProfileSection({ profile, onUpdate }) {
   const [open, setOpen] = useState(false);
@@ -402,8 +464,8 @@ function EditProfileSection({ profile, onUpdate }) {
     <>
       <Btn variant="ghost" onClick={()=>setOpen(true)} size="sm">✏️ Edit Profile</Btn>
       {open && (
-        <Modal title="Edit Profile" onClose={()=>setOpen(false)}>
-          <Input label="Bio / About me" placeholder="Tell employers about yourself, your experience and what makes you reliable..." value={form.bio} onChange={e=>set("bio",e.target.value)} multiline rows={4}/>
+        <Modal title="Edit Your Profile" onClose={()=>setOpen(false)}>
+          <Input label="Bio / About me" placeholder="Tell employers about yourself and your experience..." value={form.bio} onChange={e=>set("bio",e.target.value)} multiline rows={4}/>
           <Input label="Location in Kampala" placeholder="e.g. Nakawa, Kampala" value={form.location} onChange={e=>set("location",e.target.value)}/>
           <Input label="Phone number" placeholder="e.g. 0701234567" value={form.phone} onChange={e=>set("phone",e.target.value)}/>
           <Input label="Skills (comma separated)" placeholder="e.g. Plumbing, Pipe fitting, Welding" value={form.skills} onChange={e=>set("skills",e.target.value)}/>
@@ -419,19 +481,12 @@ function EditProfileSection({ profile, onUpdate }) {
 function AvatarUploader({ userId, onUpload }) {
   const ref = useRef(null);
   const [uploading, setUploading] = useState(false);
-
   const handle = async(e)=>{
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const file = e.target.files?.[0]; if (!file) return;
     setUploading(true);
-    try {
-      const url = await uploadImage(file, `avatars/${userId}`);
-      await updateProfile(userId, { avatar_url:url });
-      onUpload(url);
-    } catch(err){ console.error(err); }
-    finally{ setUploading(false); }
+    try { const url = await uploadImage(file, `avatars/${userId}`); await updateProfile(userId,{avatar_url:url}); onUpload(url); }
+    catch(err){ console.error(err); } finally{ setUploading(false); }
   };
-
   return (
     <>
       <input ref={ref} type="file" accept="image/*" onChange={handle} style={{ display:"none" }}/>
@@ -448,19 +503,12 @@ function AvatarUploader({ userId, onUpload }) {
 function CoverUploader({ userId, onUpload }) {
   const ref = useRef(null);
   const [uploading, setUploading] = useState(false);
-
   const handle = async(e)=>{
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const file = e.target.files?.[0]; if (!file) return;
     setUploading(true);
-    try {
-      const url = await uploadImage(file, `covers/${userId}`);
-      await updateProfile(userId, { cover_url:url });
-      onUpload(url);
-    } catch(err){ console.error(err); }
-    finally{ setUploading(false); }
+    try { const url = await uploadImage(file, `covers/${userId}`); await updateProfile(userId,{cover_url:url}); onUpload(url); }
+    catch(err){ console.error(err); } finally{ setUploading(false); }
   };
-
   return (
     <>
       <input ref={ref} type="file" accept="image/*" onChange={handle} style={{ display:"none" }}/>
@@ -478,15 +526,12 @@ function PortfolioUploader({ userId, onAdd }) {
   const ref = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [caption, setCaption] = useState("");
-  const [category, setCategory] = useState("");
   const [preview, setPreview] = useState(null);
   const [file, setFile] = useState(null);
 
   const selectFile = (e)=>{
-    const f = e.target.files?.[0];
-    if (!f) return;
-    setFile(f);
-    setPreview(URL.createObjectURL(f));
+    const f = e.target.files?.[0]; if (!f) return;
+    setFile(f); setPreview(URL.createObjectURL(f));
   };
 
   const upload = async()=>{
@@ -494,9 +539,9 @@ function PortfolioUploader({ userId, onAdd }) {
     setUploading(true);
     try {
       const url = await uploadImage(file, `portfolio/${userId}`);
-      const photo = await addPortfolioPhoto(userId, url, caption, category);
+      const photo = await addPortfolioPhoto(userId, url, caption, "");
       onAdd(photo);
-      setPreview(null); setFile(null); setCaption(""); setCategory("");
+      setPreview(null); setFile(null); setCaption("");
       await recalculateTasqScore(userId);
     } catch(err){ console.error(err); }
     finally{ setUploading(false); }
@@ -507,7 +552,7 @@ function PortfolioUploader({ userId, onAdd }) {
       <input ref={ref} type="file" accept="image/*" onChange={selectFile} style={{ display:"none" }}/>
       {preview ? (
         <>
-          <img src={preview} style={{ width:"100%", height:200, objectFit:"cover", borderRadius:10, marginBottom:10 }}/>
+          <img src={preview} style={{ width:"100%", height:180, objectFit:"cover", borderRadius:10, marginBottom:10 }}/>
           <Input placeholder="Caption (e.g. Completed plumbing job in Nakawa)" value={caption} onChange={e=>setCaption(e.target.value)}/>
           <div style={{ display:"flex", gap:8 }}>
             <Btn onClick={upload} full disabled={uploading}>{uploading?"Uploading...":"Add to Portfolio"}</Btn>
@@ -515,7 +560,7 @@ function PortfolioUploader({ userId, onAdd }) {
           </div>
         </>
       ) : (
-        <div onClick={()=>ref.current?.click()} style={{ textAlign:"center", cursor:"pointer", padding:"12px 0" }}>
+        <div onClick={()=>ref.current?.click()} style={{ textAlign:"center", cursor:"pointer", padding:"10px 0" }}>
           <div style={{ fontSize:28, marginBottom:6 }}>📸</div>
           <div style={{ fontWeight:600, fontSize:14, color:"var(--text)" }}>Add portfolio photo</div>
           <div style={{ fontSize:12, color:"var(--text3)", marginTop:4 }}>Show your best work to attract employers</div>
@@ -525,7 +570,7 @@ function PortfolioUploader({ userId, onAdd }) {
   );
 }
 
-// ── ADD WORK HISTORY FORM ─────────────────────────────────────────────────────
+// ── ADD WORK HISTORY ──────────────────────────────────────────────────────────
 
 function AddWorkHistoryForm({ userId, onAdd }) {
   const [open, setOpen] = useState(false);
@@ -536,13 +581,8 @@ function AddWorkHistoryForm({ userId, onAdd }) {
   const save = async()=>{
     if (!form.title) return;
     setSaving(true);
-    try {
-      const entry = await addWorkHistory(userId, form);
-      onAdd(entry);
-      setOpen(false);
-      setForm({ title:"", company:"", location:"", start_date:"", end_date:"", current:false, description:"" });
-    } catch(e){ console.error(e); }
-    finally{ setSaving(false); }
+    try { const e = await addWorkHistory(userId, form); onAdd(e); setOpen(false); setForm({ title:"", company:"", location:"", start_date:"", end_date:"", current:false, description:"" }); }
+    catch(e){ console.error(e); } finally{ setSaving(false); }
   };
 
   return (
@@ -561,7 +601,7 @@ function AddWorkHistoryForm({ userId, onAdd }) {
             <input type="checkbox" checked={form.current} onChange={e=>set("current",e.target.checked)} style={{ accentColor:ORANGE }}/>
             <span style={{ fontSize:13, color:"var(--text2)" }}>I currently work here</span>
           </label>
-          <Input label="Description" placeholder="Describe what you did in this role..." value={form.description} onChange={e=>set("description",e.target.value)} multiline rows={3}/>
+          <Input label="Description" placeholder="Describe what you did..." value={form.description} onChange={e=>set("description",e.target.value)} multiline rows={3}/>
           <Btn onClick={save} full disabled={saving||!form.title}>{saving?"Saving...":"Add Experience"}</Btn>
         </Modal>
       )}
@@ -569,7 +609,7 @@ function AddWorkHistoryForm({ userId, onAdd }) {
   );
 }
 
-// ── ADD CERTIFICATION FORM ────────────────────────────────────────────────────
+// ── ADD CERTIFICATION ─────────────────────────────────────────────────────────
 
 function AddCertForm({ userId, onAdd }) {
   const [open, setOpen] = useState(false);
@@ -588,11 +628,8 @@ function AddCertForm({ userId, onAdd }) {
       const cert = await addCertification(userId, { ...form, document_url:doc_url });
       onAdd(cert);
       await recalculateTasqScore(userId);
-      setOpen(false);
-      setForm({ name:"", issuer:"", issued_date:"" });
-      setFile(null);
-    } catch(e){ console.error(e); }
-    finally{ setSaving(false); }
+      setOpen(false); setForm({ name:"", issuer:"", issued_date:"" }); setFile(null);
+    } catch(e){ console.error(e); } finally{ setSaving(false); }
   };
 
   return (
@@ -607,7 +644,7 @@ function AddCertForm({ userId, onAdd }) {
             <label style={{ fontSize:12, fontWeight:600, color:"var(--text2)", display:"block", marginBottom:5 }}>Upload Certificate (optional)</label>
             <input ref={ref} type="file" accept="image/*,.pdf" onChange={e=>setFile(e.target.files?.[0])} style={{ display:"none" }}/>
             <div onClick={()=>ref.current?.click()} style={{ border:"1.5px dashed var(--border)", borderRadius:8, padding:"10px 14px", cursor:"pointer", fontSize:13, color:"var(--text3)", textAlign:"center" }}>
-              {file ? `✅ ${file.name}` : "📄 Click to upload certificate image or PDF"}
+              {file?`✅ ${file.name}`:"📄 Click to upload certificate image or PDF"}
             </div>
           </div>
           <Btn onClick={save} full disabled={saving||!form.name}>{saving?"Uploading...":"Add Certificate"}</Btn>
