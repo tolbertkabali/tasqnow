@@ -2,27 +2,24 @@
 import { useState, useEffect, useRef } from "react";
 import {
   supabase, signUp, signIn, signOut, getProfile, updateProfile, switchMode,
-  fetchJobs, postJob, fetchMyJobs, closeJob,
+  fetchJobs, postJob, fetchMyJobs,
   fetchWorkers,
-  applyToJob, fetchMyApplications, hasApplied, fetchJobApplications, updateApplicationStatus,
+  applyToJob, fetchMyApplications, hasApplied,
   fetchSavedJobs, saveJob, unsaveJob, fetchSavedJobIds,
   fetchThread, sendMessage, fetchConversations,
   countUnread, subscribeToMessages, markMessagesRead
 } from "./supabase";
 import { ThemeProvider, ThemeToggle } from "./Theme";
+import { WorkerProfileView } from "./WorkerProfile";
 
 const ORANGE = "#F07320";
 const ORANGE_LIGHT = "var(--orange-light)";
 const ORANGE_DARK = "var(--orange-dark)";
 const BLUE = "#0A66C2";
 const TEAL = "#0D9488";
-const GRAY50 = "var(--bg2)";
-const GRAY100 = "var(--bg3)";
 const GRAY200 = "var(--border)";
-const GRAY300 = "var(--border2)";
 const GRAY400 = "var(--text3)";
 const GRAY600 = "var(--text2)";
-const GRAY700 = "var(--text2)";
 const GRAY900 = "var(--text)";
 const FONT = "'Plus Jakarta Sans', 'Segoe UI', sans-serif";
 
@@ -68,7 +65,7 @@ const LogoIcon = ({ size = 28 }) => (
 
 const Avatar = ({ initials, color = ORANGE, size = 36, url }) => (
   <div style={{ width:size, height:size, borderRadius:"50%", background:url?"transparent":color, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:700, fontSize:size*0.3, flexShrink:0, overflow:"hidden" }}>
-    {url ? <img src={url} style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : initials}
+    {url ? <img src={url} style={{ width:"100%", height:"100%", objectFit:"cover" }}/> : initials}
   </div>
 );
 
@@ -132,22 +129,20 @@ const Icon = ({ name, size=20, color="currentColor" }) => {
     check:       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
     send:        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>,
     share:       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>,
-    star:        <svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke={color} strokeWidth="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
-    swap:        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 16V4m0 0L3 8m4-4 4 4"/><path d="M17 8v12m0 0 4-4m-4 4-4-4"/></svg>,
   };
   return icons[name] || null;
 };
 
-// ── MODE TOGGLE PILL ──────────────────────────────────────────────────────────
+// ── MODE TOGGLE ───────────────────────────────────────────────────────────────
 
 const ModeToggle = ({ mode, onSwitch, loading }) => (
   <div style={{ display:"flex", alignItems:"center", background:"var(--bg3)", borderRadius:100, padding:3, gap:2, border:"1px solid var(--border)" }}>
     <button onClick={()=>mode!=="worker"&&onSwitch("worker")} disabled={loading}
-      style={{ padding:"5px 14px", borderRadius:100, border:"none", background:mode==="worker"?ORANGE:"transparent", color:mode==="worker"?"#fff":"var(--text2)", fontWeight:600, fontSize:12, cursor:"pointer", fontFamily:FONT, transition:"all .2s", display:"flex", alignItems:"center", gap:5 }}>
+      style={{ padding:"5px 14px", borderRadius:100, border:"none", background:mode==="worker"?ORANGE:"transparent", color:mode==="worker"?"#fff":"var(--text2)", fontWeight:600, fontSize:12, cursor:"pointer", fontFamily:FONT, transition:"all .2s" }}>
       🔨 Worker
     </button>
     <button onClick={()=>mode!=="employer"&&onSwitch("employer")} disabled={loading}
-      style={{ padding:"5px 14px", borderRadius:100, border:"none", background:mode==="employer"?TEAL:"transparent", color:mode==="employer"?"#fff":"var(--text2)", fontWeight:600, fontSize:12, cursor:"pointer", fontFamily:FONT, transition:"all .2s", display:"flex", alignItems:"center", gap:5 }}>
+      style={{ padding:"5px 14px", borderRadius:100, border:"none", background:mode==="employer"?TEAL:"transparent", color:mode==="employer"?"#fff":"var(--text2)", fontWeight:600, fontSize:12, cursor:"pointer", fontFamily:FONT, transition:"all .2s" }}>
       🏢 Employer
     </button>
   </div>
@@ -175,7 +170,7 @@ const JobCard = ({ job, onClick, onSave, compact, savedIds=[] }) => {
             </div>
             <button onClick={e=>{ e.stopPropagation(); onSave&&onSave(job.id,isSaved); }}
               style={{ background:"none", border:"none", cursor:"pointer", padding:4, flexShrink:0 }}>
-              <Icon name={isSaved?"bookmarkFill":"bookmark"} size={18} color={isSaved?ORANGE:"var(--text3)"} />
+              <Icon name={isSaved?"bookmarkFill":"bookmark"} size={18} color={isSaved?ORANGE:"var(--text3)"}/>
             </button>
           </div>
           <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginTop:8, alignItems:"center" }}>
@@ -204,7 +199,7 @@ const JobCard = ({ job, onClick, onSave, compact, savedIds=[] }) => {
   );
 };
 
-// ── WORKER CARD (for employer browse mode) ────────────────────────────────────
+// ── WORKER CARD ───────────────────────────────────────────────────────────────
 
 const WorkerCard = ({ worker, onClick }) => {
   const colors = ["#F07320","#0A66C2","#10B981","#8B5CF6","#EF4444","#F59E0B"];
@@ -225,20 +220,17 @@ const WorkerCard = ({ worker, onClick }) => {
                 {worker.skills?.slice(0,2).join(" · ") || "General worker"}
               </div>
             </div>
-            {/* TasqScore */}
-            <div style={{ textAlign:"center", background: score>=70?"#EAF3DE":score>=40?"#FAEEDA":"var(--bg3)", borderRadius:10, padding:"6px 10px", flexShrink:0 }}>
-              <div style={{ fontWeight:800, fontSize:16, color:score>=70?"#3B6D11":score>=40?"#854F0B":"var(--text2)" }}>{score}</div>
-              <div style={{ fontSize:9, fontWeight:600, color:score>=70?"#3B6D11":score>=40?"#854F0B":"var(--text3)", textTransform:"uppercase", letterSpacing:".04em" }}>TasqScore</div>
+            <div style={{ background:score>=70?"#D1FAE5":score>=40?"#FEF3C7":"var(--bg3)", borderRadius:10, padding:"6px 10px", textAlign:"center", flexShrink:0 }}>
+              <div style={{ fontWeight:800, fontSize:16, color:score>=70?"#10B981":score>=40?"#F59E0B":"var(--text3)", lineHeight:1 }}>{score}</div>
+              <div style={{ fontSize:9, fontWeight:700, color:score>=70?"#10B981":score>=40?"#F59E0B":"var(--text3)", textTransform:"uppercase", letterSpacing:".04em", marginTop:2 }}>TasqScore</div>
             </div>
           </div>
-          <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginTop:10 }}>
-            {worker.location && (
-              <span style={{ display:"flex", alignItems:"center", gap:4, fontSize:12, color:"var(--text2)" }}>
-                <Icon name="location" size={12} color="var(--text3)"/> {worker.location}
-              </span>
-            )}
-            {worker.skills?.slice(0,3).map(s=><Tag key={s}>{s}</Tag>)}
+          <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginTop:10, alignItems:"center" }}>
+            {worker.location && <span style={{ display:"flex", alignItems:"center", gap:4, fontSize:12, color:"var(--text2)" }}><Icon name="location" size={12} color="var(--text3)"/> {worker.location}</span>}
+            {worker.skills?.slice(0,2).map(s=><Tag key={s}>{s}</Tag>)}
           </div>
+          {worker.bio && <div style={{ fontSize:12, color:"var(--text3)", marginTop:8, lineHeight:1.5, overflow:"hidden", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" }}>{worker.bio}</div>}
+          <div style={{ marginTop:10, fontSize:12, color:TEAL, fontWeight:600 }}>View full profile →</div>
         </div>
       </div>
     </div>
@@ -282,7 +274,6 @@ const AuthModal = ({ mode, onClose, onAuth }) => {
           </div>
           <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--text3)" }}><Icon name="x" size={20}/></button>
         </div>
-
         <div style={{ display:"flex", background:"var(--bg3)", borderRadius:8, padding:4, marginBottom:24 }}>
           {["signin","signup"].map(t=>(
             <button key={t} onClick={()=>{setTab(t);setError("");}}
@@ -291,19 +282,17 @@ const AuthModal = ({ mode, onClose, onAuth }) => {
             </button>
           ))}
         </div>
-
         {done ? (
           <div style={{ textAlign:"center", padding:"24px 0" }}>
             <div style={{ fontSize:48, marginBottom:12 }}>🎉</div>
             <div style={{ fontWeight:700, fontSize:18, marginBottom:8, color:"var(--text)" }}>Welcome to TasqNow!</div>
-            <div style={{ color:"var(--text2)", fontSize:14 }}>Your account is ready. Sign in to get started.</div>
-            <div style={{ marginTop:16 }}><Btn onClick={()=>setTab("signin")} full>Sign In Now</Btn></div>
+            <div style={{ color:"var(--text2)", fontSize:14, marginBottom:16 }}>Your account is ready.</div>
+            <Btn onClick={()=>setTab("signin")} full>Sign In Now</Btn>
           </div>
         ) : (
           <>
             {tab==="signup" && (
               <>
-                {/* Role selection - big and clear */}
                 <div style={{ marginBottom:20 }}>
                   <div style={{ fontSize:13, fontWeight:600, marginBottom:10, color:"var(--text2)" }}>I'm joining to...</div>
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
@@ -319,15 +308,13 @@ const AuthModal = ({ mode, onClose, onAuth }) => {
                       </button>
                     ))}
                   </div>
-                  <div style={{ fontSize:11, color:"var(--text3)", marginTop:8, textAlign:"center" }}>
-                    ✌️ You can always switch modes later — do both!
-                  </div>
+                  <div style={{ fontSize:11, color:"var(--text3)", marginTop:8, textAlign:"center" }}>✌️ You can switch modes anytime</div>
                 </div>
-                <div style={{ marginBottom:12 }}><Input placeholder="Full name" value={name} onChange={e=>setName(e.target.value)} /></div>
+                <div style={{ marginBottom:12 }}><Input placeholder="Full name" value={name} onChange={e=>setName(e.target.value)}/></div>
               </>
             )}
-            <div style={{ marginBottom:12 }}><Input placeholder="Email address" value={email} onChange={e=>setEmail(e.target.value)} type="email" /></div>
-            <div style={{ marginBottom:error?12:20 }}><Input placeholder="Password" value={pass} onChange={e=>setPass(e.target.value)} type="password" /></div>
+            <div style={{ marginBottom:12 }}><Input placeholder="Email address" value={email} onChange={e=>setEmail(e.target.value)} type="email"/></div>
+            <div style={{ marginBottom:error?12:20 }}><Input placeholder="Password" value={pass} onChange={e=>setPass(e.target.value)} type="password"/></div>
             {error&&<div style={{ background:"#FEF2F2", border:"1px solid #FECACA", borderRadius:8, padding:"10px 14px", fontSize:13, color:"#B91C1C", marginBottom:16 }}>{error}</div>}
             <Btn onClick={submit} full size="lg" disabled={loading}>{loading?"Please wait...":tab==="signin"?"Sign In":"Create Account"}</Btn>
           </>
@@ -348,11 +335,11 @@ const ApplyModal = ({ job, onClose, user }) => {
   useEffect(()=>{ if(job&&user) hasApplied(job.id,user.id).then(setAlreadyApplied); },[job,user]);
   if (!job) return null;
 
-  const submit = async () => {
+  const submit = async()=>{
     setLoading(true);
     try { await applyToJob(job.id,user.id,msg); setApplied(true); }
-    catch(e) { if(e.message?.includes("unique")) setAlreadyApplied(true); }
-    finally { setLoading(false); }
+    catch(e){ if(e.message?.includes("unique")) setAlreadyApplied(true); }
+    finally{ setLoading(false); }
   };
 
   return (
@@ -363,14 +350,14 @@ const ApplyModal = ({ job, onClose, user }) => {
           <div style={{ textAlign:"center", padding:"24px 0" }}>
             <div style={{ fontSize:40, marginBottom:12 }}>🎉</div>
             <div style={{ fontWeight:700, fontSize:20, marginBottom:8, color:"var(--text)" }}>Application Sent!</div>
-            <div style={{ color:"var(--text2)", fontSize:14, marginBottom:24 }}>You've applied for <strong>{job.title}</strong>. The employer will contact you via Messages.</div>
+            <div style={{ color:"var(--text2)", fontSize:14, marginBottom:24 }}>Your application for <strong>{job.title}</strong> has been submitted!</div>
             <Btn onClick={onClose} full>Done</Btn>
           </div>
         ) : alreadyApplied ? (
           <div style={{ textAlign:"center", padding:"24px 0" }}>
             <div style={{ fontSize:40, marginBottom:12 }}>✅</div>
-            <div style={{ fontWeight:700, fontSize:18, marginBottom:8, color:"var(--text)" }}>Already Applied</div>
-            <Btn onClick={onClose} full>Close</Btn>
+            <div style={{ fontWeight:700, fontSize:18, color:"var(--text)" }}>Already Applied</div>
+            <div style={{ marginTop:16 }}><Btn onClick={onClose} full>Close</Btn></div>
           </div>
         ) : (
           <>
@@ -409,21 +396,13 @@ const Navbar = ({ page, setPage, user, setAuthMode, unread, mode, onSwitchMode, 
       <LogoIcon size={32}/>
       <span style={{ fontWeight:800, fontSize:20, letterSpacing:"-0.02em", color:"var(--text)", display:window.innerWidth<480?"none":"block" }}>tasq<span style={{color:ORANGE}}>now</span></span>
     </div>
-
-    {/* Mode toggle - center of navbar */}
     {user && (
       <div style={{ flex:1, display:"flex", justifyContent:"center" }}>
-        <ModeToggle mode={mode} onSwitch={onSwitchMode} loading={switching} />
+        <ModeToggle mode={mode} onSwitch={onSwitchMode} loading={switching}/>
       </div>
     )}
-
-    <div style={{ display:"flex", alignItems:"center", gap:4, marginLeft:user?"0":"auto" }}>
-      {/* Nav items change based on mode */}
-      {user && mode==="worker" && [
-        {id:"home",label:"Home",icon:"home"},
-        {id:"jobs",label:"Find Work",icon:"briefcase"},
-        {id:"messages",label:"Chat",icon:"message"},
-      ].map(n=>(
+    <div style={{ display:"flex", alignItems:"center", gap:2, marginLeft:user?"0":"auto" }}>
+      {user && mode==="worker" && [{id:"home",label:"Home",icon:"home"},{id:"jobs",label:"Find Work",icon:"briefcase"},{id:"messages",label:"Chat",icon:"message"}].map(n=>(
         <button key={n.id} onClick={()=>setPage(n.id)}
           style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, padding:"6px 8px", border:"none", background:"none", cursor:"pointer", color:page===n.id?ORANGE:"var(--text2)", fontFamily:FONT, position:"relative" }}>
           <Icon name={n.icon} size={20} color={page===n.id?ORANGE:"var(--text2)"}/>
@@ -432,13 +411,7 @@ const Navbar = ({ page, setPage, user, setAuthMode, unread, mode, onSwitchMode, 
           {page===n.id&&<div style={{ position:"absolute", bottom:0, left:"50%", transform:"translateX(-50%)", width:20, height:2, background:ORANGE, borderRadius:100 }}/>}
         </button>
       ))}
-
-      {user && mode==="employer" && [
-        {id:"home",label:"Home",icon:"home"},
-        {id:"browse",label:"Find Workers",icon:"users"},
-        {id:"post",label:"Post Gig",icon:"plus"},
-        {id:"messages",label:"Chat",icon:"message"},
-      ].map(n=>(
+      {user && mode==="employer" && [{id:"home",label:"Home",icon:"home"},{id:"browse",label:"Workers",icon:"users"},{id:"post",label:"Post Gig",icon:"plus"},{id:"messages",label:"Chat",icon:"message"}].map(n=>(
         <button key={n.id} onClick={()=>setPage(n.id)}
           style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, padding:"6px 8px", border:"none", background:"none", cursor:"pointer", color:page===n.id?TEAL:"var(--text2)", fontFamily:FONT, position:"relative" }}>
           <Icon name={n.icon} size={20} color={page===n.id?TEAL:"var(--text2)"}/>
@@ -447,9 +420,7 @@ const Navbar = ({ page, setPage, user, setAuthMode, unread, mode, onSwitchMode, 
           {page===n.id&&<div style={{ position:"absolute", bottom:0, left:"50%", transform:"translateX(-50%)", width:20, height:2, background:TEAL, borderRadius:100 }}/>}
         </button>
       ))}
-
-      <ThemeToggle />
-
+      <ThemeToggle/>
       {user ? (
         <button onClick={()=>setPage("profile")} style={{ marginLeft:4, background:"none", border:"none", cursor:"pointer", padding:4 }}>
           <div style={{ width:36, height:36, borderRadius:"50%", background:mode==="employer"?TEAL:ORANGE, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:700, fontSize:13, border:page==="profile"?`2px solid ${mode==="employer"?TEAL:ORANGE}`:"2px solid transparent" }}>
@@ -466,30 +437,17 @@ const Navbar = ({ page, setPage, user, setAuthMode, unread, mode, onSwitchMode, 
   </nav>
 );
 
-// Mobile nav - also mode-aware
 const MobileNav = ({ page, setPage, unread, mode }) => {
-  const workerTabs = [
-    {id:"home",label:"Home",icon:"home"},
-    {id:"jobs",label:"Jobs",icon:"briefcase"},
-    {id:"messages",label:"Chat",icon:"message"},
-    {id:"profile",label:"Profile",icon:"user"},
-  ];
-  const employerTabs = [
-    {id:"home",label:"Home",icon:"home"},
-    {id:"browse",label:"Workers",icon:"users"},
-    {id:"post",label:"Post",icon:"plus"},
-    {id:"messages",label:"Chat",icon:"message"},
-    {id:"profile",label:"Profile",icon:"user"},
-  ];
-  const tabs = mode==="employer" ? employerTabs : workerTabs;
-  const activeColor = mode==="employer" ? TEAL : ORANGE;
-
+  const workerTabs = [{id:"home",label:"Home",icon:"home"},{id:"jobs",label:"Jobs",icon:"briefcase"},{id:"messages",label:"Chat",icon:"message"},{id:"profile",label:"Profile",icon:"user"}];
+  const employerTabs = [{id:"home",label:"Home",icon:"home"},{id:"browse",label:"Workers",icon:"users"},{id:"post",label:"Post",icon:"plus"},{id:"messages",label:"Chat",icon:"message"},{id:"profile",label:"Profile",icon:"user"}];
+  const tabs = mode==="employer"?employerTabs:workerTabs;
+  const ac = mode==="employer"?TEAL:ORANGE;
   return (
     <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--nav-bg)", backdropFilter:"blur(12px)", borderTop:"1px solid var(--border)", display:"flex", zIndex:100 }}>
       {tabs.map(n=>(
         <button key={n.id} onClick={()=>setPage(n.id)}
-          style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:3, padding:"10px 0 8px", border:"none", background:"none", cursor:"pointer", color:page===n.id?activeColor:"var(--text3)", fontFamily:FONT, position:"relative" }}>
-          <Icon name={n.icon} size={22} color={page===n.id?activeColor:"var(--text3)"}/>
+          style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:3, padding:"10px 0 8px", border:"none", background:"none", cursor:"pointer", color:page===n.id?ac:"var(--text3)", fontFamily:FONT, position:"relative" }}>
+          <Icon name={n.icon} size={22} color={page===n.id?ac:"var(--text3)"}/>
           <span style={{ fontSize:10, fontWeight:page===n.id?700:500 }}>{n.label}</span>
           {n.id==="messages"&&unread>0&&<span style={{ position:"absolute", top:8, left:"50%", marginLeft:4, background:"#EF4444", color:"#fff", borderRadius:100, fontSize:9, fontWeight:700, padding:"1px 4px" }}>{unread}</span>}
         </button>
@@ -498,15 +456,16 @@ const MobileNav = ({ page, setPage, unread, mode }) => {
   );
 };
 
-// ── HOME PAGE — mode aware ─────────────────────────────────────────────────────
+// ── HOME PAGE ─────────────────────────────────────────────────────────────────
 
-const HomePage = ({ setPage, onJobClick, user, setAuthMode, savedIds, onSave, mode }) => {
+const HomePage = ({ setPage, onJobClick, user, setAuthMode, savedIds, onSave, mode, onWorkerClick }) => {
   const [what, setWhat] = useState("");
   const [where, setWhere] = useState("");
   const [activecat, setActivecat] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const ac = mode==="employer"?TEAL:ORANGE;
 
   useEffect(()=>{
     setLoading(true);
@@ -517,20 +476,17 @@ const HomePage = ({ setPage, onJobClick, user, setAuthMode, savedIds, onSave, mo
     }
   }, [activecat, mode]);
 
-  const accentColor = mode==="employer" ? TEAL : ORANGE;
-
   return (
     <div style={{ maxWidth:760, margin:"0 auto", padding:"0 16px 100px" }}>
       <div style={{ padding:"28px 0 20px" }}>
         {user && <div style={{ fontSize:15, color:"var(--text2)", marginBottom:4 }}>Good day, <strong style={{color:"var(--text)"}}>{user.name}</strong> {mode==="employer"?"🏢":"👋"}</div>}
         <h1 style={{ fontSize:26, fontWeight:800, color:"var(--text)", lineHeight:1.2, marginBottom:18 }}>
-          {mode==="employer" ? "Find skilled workers" : "Find local gig jobs"}
+          {mode==="employer"?"Find skilled workers":"Find local gig jobs"}
         </h1>
-
         <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
           <div style={{ flex:"1 1 180px", border:"1.5px solid var(--border)", borderRadius:10, display:"flex", alignItems:"center", background:"var(--input-bg)", overflow:"hidden" }}>
             <span style={{ padding:"0 12px", color:"var(--text3)", display:"flex" }}><Icon name="search" size={16}/></span>
-            <input placeholder={mode==="employer"?"Search workers by skill...":"e.g. plumbing, nanny"} value={what} onChange={e=>setWhat(e.target.value)}
+            <input placeholder={mode==="employer"?"Search by skill...":"e.g. plumbing, nanny"} value={what} onChange={e=>setWhat(e.target.value)}
               onKeyDown={e=>e.key==="Enter"&&setPage(mode==="employer"?"browse":"jobs")}
               style={{ flex:1, padding:"12px 0", border:"none", outline:"none", fontSize:14, fontFamily:FONT, background:"transparent", color:"var(--text)" }}/>
           </div>
@@ -539,11 +495,10 @@ const HomePage = ({ setPage, onJobClick, user, setAuthMode, savedIds, onSave, mo
             <input placeholder="City or region" value={where} onChange={e=>setWhere(e.target.value)}
               style={{ flex:1, padding:"12px 0", border:"none", outline:"none", fontSize:14, fontFamily:FONT, background:"transparent", color:"var(--text)" }}/>
           </div>
-          <Btn onClick={()=>setPage(mode==="employer"?"browse":"jobs")} size="lg" style={{ borderRadius:10, background:accentColor }}>Search</Btn>
+          <Btn onClick={()=>setPage(mode==="employer"?"browse":"jobs")} size="lg" style={{ borderRadius:10, background:ac }}>Search</Btn>
         </div>
       </div>
 
-      {/* Categories - only in worker mode */}
       {mode==="worker" && (
         <div style={{ marginBottom:24 }}>
           <div style={{ fontWeight:700, fontSize:15, marginBottom:12, color:"var(--text)" }}>Browse by category</div>
@@ -559,18 +514,16 @@ const HomePage = ({ setPage, onJobClick, user, setAuthMode, savedIds, onSave, mo
         </div>
       )}
 
-      {/* CTA banner for guests */}
       {!user && (
         <div style={{ background:`linear-gradient(135deg, ${ORANGE} 0%, #C85A10 100%)`, borderRadius:14, padding:"20px 24px", marginBottom:24, display:"flex", alignItems:"center", justifyContent:"space-between", gap:16 }}>
           <div>
             <div style={{ fontWeight:700, fontSize:16, color:"#fff", marginBottom:4 }}>Join TasqNow Free</div>
-            <div style={{ fontSize:13, color:"rgba(255,255,255,.8)" }}>Find work or hire people in Kampala — free to join</div>
+            <div style={{ fontSize:13, color:"rgba(255,255,255,.8)" }}>Find work or hire people in Kampala</div>
           </div>
           <Btn variant="outline" onClick={()=>setAuthMode("signup")} style={{ borderColor:"#fff", color:"#fff", flexShrink:0 }}>Get Started</Btn>
         </div>
       )}
 
-      {/* Employer mode quick actions */}
       {user && mode==="employer" && (
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:24 }}>
           <div onClick={()=>setPage("post")} style={{ background:`${TEAL}15`, border:`1.5px solid ${TEAL}44`, borderRadius:12, padding:"16px 18px", cursor:"pointer", transition:"all .15s" }}
@@ -590,30 +543,27 @@ const HomePage = ({ setPage, onJobClick, user, setAuthMode, savedIds, onSave, mo
         </div>
       )}
 
-      {/* Listings */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
-        <div style={{ fontWeight:700, fontSize:15, color:"var(--text)" }}>
-          {mode==="employer" ? "Available Workers" : `Latest Jobs ${activecat?<Badge>{CATEGORIES.find(c=>c.id===activecat)?.label}</Badge>:""}`}
-        </div>
-        <span onClick={()=>setPage(mode==="employer"?"browse":"jobs")} style={{ fontSize:13, color:accentColor, fontWeight:600, cursor:"pointer" }}>See all →</span>
+        <div style={{ fontWeight:700, fontSize:15, color:"var(--text)" }}>{mode==="employer"?"Available Workers":"Latest Jobs"}</div>
+        <span onClick={()=>setPage(mode==="employer"?"browse":"jobs")} style={{ fontSize:13, color:ac, fontWeight:600, cursor:"pointer" }}>See all →</span>
       </div>
 
-      {loading ? <Spinner /> : mode==="employer" ? (
+      {loading ? <Spinner/> : mode==="employer" ? (
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-          {workers.slice(0,4).map(w=><WorkerCard key={w.id} worker={w} onClick={()=>setPage("browse")}/>)}
+          {workers.slice(0,4).map(w=><WorkerCard key={w.id} worker={w} onClick={()=>onWorkerClick(w.id)}/>)}
           {!workers.length && <div style={{ textAlign:"center", padding:"40px 0", color:"var(--text3)" }}><div style={{ fontSize:36, marginBottom:8 }}>👷</div><div style={{ fontWeight:600 }}>No workers yet</div></div>}
         </div>
       ) : (
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
           {jobs.slice(0,6).map(j=><JobCard key={j.id} job={j} onClick={()=>onJobClick(j)} onSave={onSave} compact savedIds={savedIds}/>)}
-          {!jobs.length && <div style={{ textAlign:"center", padding:"40px 0", color:"var(--text3)" }}><div style={{ fontSize:36, marginBottom:8 }}>📭</div><div style={{ fontWeight:600 }}>No jobs posted yet</div><div style={{ fontSize:13, marginTop:4 }}>Be the first to post a gig!</div></div>}
+          {!jobs.length && <div style={{ textAlign:"center", padding:"40px 0", color:"var(--text3)" }}><div style={{ fontSize:36, marginBottom:8 }}>📭</div><div style={{ fontWeight:600 }}>No jobs posted yet</div></div>}
         </div>
       )}
     </div>
   );
 };
 
-// ── JOBS PAGE (worker) ────────────────────────────────────────────────────────
+// ── JOBS PAGE ─────────────────────────────────────────────────────────────────
 
 const JobsPage = ({ onJobClick, onSave, savedIds }) => {
   const [search, setSearch] = useState("");
@@ -656,9 +606,9 @@ const JobsPage = ({ onJobClick, onSave, savedIds }) => {
         })}
       </div>
       <div style={{ fontSize:13, color:"var(--text3)", marginBottom:14 }}>{jobs.length} jobs found</div>
-      {loading ? <Spinner /> : (
+      {loading?<Spinner/>:(
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-          {jobs.length ? jobs.map(j=><JobCard key={j.id} job={j} onClick={()=>onJobClick(j)} onSave={onSave} savedIds={savedIds}/>) : (
+          {jobs.length?jobs.map(j=><JobCard key={j.id} job={j} onClick={()=>onJobClick(j)} onSave={onSave} savedIds={savedIds}/>):(
             <div style={{ textAlign:"center", padding:"48px 0", color:"var(--text3)" }}>
               <div style={{ fontSize:40, marginBottom:12 }}>🔍</div>
               <div style={{ fontWeight:600, fontSize:16 }}>No jobs found</div>
@@ -670,9 +620,9 @@ const JobsPage = ({ onJobClick, onSave, savedIds }) => {
   );
 };
 
-// ── BROWSE WORKERS (employer) ─────────────────────────────────────────────────
+// ── BROWSE WORKERS ────────────────────────────────────────────────────────────
 
-const BrowseWorkers = ({ setPage }) => {
+const BrowseWorkers = ({ onWorkerClick }) => {
   const [search, setSearch] = useState("");
   const [loc, setLoc] = useState("");
   const [cat, setCat] = useState("All");
@@ -681,14 +631,14 @@ const BrowseWorkers = ({ setPage }) => {
 
   useEffect(()=>{
     setLoading(true);
-    fetchWorkers({ search, location:loc, category:cat==="All"?null:cat })
+    fetchWorkers({ search, location:loc })
       .then(w=>{ setWorkers(w); setLoading(false); }).catch(()=>setLoading(false));
-  }, [search, loc, cat]);
+  }, [search, loc]);
 
   return (
     <div style={{ maxWidth:900, margin:"0 auto", padding:"24px 16px 100px" }}>
       <h2 style={{ fontWeight:800, fontSize:22, marginBottom:4, color:"var(--text)" }}>Find Workers</h2>
-      <div style={{ color:"var(--text2)", fontSize:14, marginBottom:16 }}>Browse skilled workers available in Kampala</div>
+      <div style={{ color:"var(--text2)", fontSize:14, marginBottom:16 }}>Browse skilled workers available in Kampala — click any worker to see their full profile</div>
       <div style={{ display:"flex", gap:8, marginBottom:16, flexWrap:"wrap" }}>
         <div style={{ flex:"1 1 200px" }}><Input placeholder="Search by name or skill" value={search} onChange={e=>setSearch(e.target.value)} icon={<Icon name="search" size={16}/>}/></div>
         <div style={{ flex:"1 1 160px" }}><Input placeholder="Location" value={loc} onChange={e=>setLoc(e.target.value)} icon={<Icon name="location" size={16}/>}/></div>
@@ -705,9 +655,11 @@ const BrowseWorkers = ({ setPage }) => {
         })}
       </div>
       <div style={{ fontSize:13, color:"var(--text3)", marginBottom:14 }}>{workers.length} workers available</div>
-      {loading ? <Spinner /> : (
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(320px, 1fr))", gap:12 }}>
-          {workers.length ? workers.map(w=><WorkerCard key={w.id} worker={w} onClick={()=>{}}/>) : (
+      {loading?<Spinner/>:(
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(300px, 1fr))", gap:12 }}>
+          {workers.length?workers.map(w=>(
+            <WorkerCard key={w.id} worker={w} onClick={()=>onWorkerClick(w.id)}/>
+          )):(
             <div style={{ textAlign:"center", padding:"48px 0", color:"var(--text3)", gridColumn:"1/-1" }}>
               <div style={{ fontSize:40, marginBottom:12 }}>👷</div>
               <div style={{ fontWeight:600 }}>No workers found</div>
@@ -726,7 +678,6 @@ const JobDetail = ({ job, onBack, onApply, onSave, user, setAuthMode, savedIds, 
   const colors = ["#F07320","#0A66C2","#10B981","#8B5CF6","#EF4444","#F59E0B"];
   const color = colors[job.title?.charCodeAt(0) % colors.length] || ORANGE;
   const isSaved = savedIds.includes(job.id);
-
   return (
     <div style={{ maxWidth:720, margin:"0 auto", padding:"0 16px 120px" }}>
       <button onClick={onBack} style={{ display:"flex", alignItems:"center", gap:6, background:"none", border:"none", cursor:"pointer", color:"var(--text2)", fontFamily:FONT, padding:"20px 0", fontSize:14, fontWeight:600 }}>
@@ -756,7 +707,7 @@ const JobDetail = ({ job, onBack, onApply, onSave, user, setAuthMode, savedIds, 
           </div>
         </div>
         <div style={{ padding:"16px 24px", borderBottom:"1px solid var(--border)", display:"flex", gap:10 }}>
-          {mode==="worker" && <Btn onClick={()=>{ user?onApply(job):setAuthMode("signin"); }} full size="lg">Apply Now</Btn>}
+          {mode==="worker"&&<Btn onClick={()=>{ user?onApply(job):setAuthMode("signin"); }} full size="lg">Apply Now</Btn>}
           <button onClick={()=>onSave(job.id,isSaved)} style={{ padding:"0 14px", border:"1.5px solid var(--border)", borderRadius:8, background:"var(--card)", cursor:"pointer", display:"flex", alignItems:"center" }}>
             <Icon name={isSaved?"bookmarkFill":"bookmark"} size={20} color={isSaved?ORANGE:"var(--text3)"}/>
           </button>
@@ -796,15 +747,15 @@ const PostGig = ({ user, setAuthMode, onPosted }) => {
     </div>
   );
 
-  const submit = async () => {
+  const submit = async()=>{
     if (!form.title||!form.category) { setError("Please fill in the job title and category."); return; }
     setError(""); setLoading(true);
     try {
       const skillsArray = form.skills?form.skills.split(",").map(s=>s.trim()).filter(Boolean):[];
       await postJob({ ...form, skills:skillsArray }, user.id);
       setPosted(true); setTimeout(onPosted, 2500);
-    } catch(e) { setError(e.message||"Failed to post."); }
-    finally { setLoading(false); }
+    } catch(e){ setError(e.message||"Failed to post."); }
+    finally{ setLoading(false); }
   };
 
   if (posted) return (
@@ -839,7 +790,7 @@ const PostGig = ({ user, setAuthMode, onPosted }) => {
           <div><label style={{ fontSize:13, fontWeight:600, color:"var(--text2)", display:"block", marginBottom:6 }}>Location</label><Input placeholder="e.g. Nakawa, Kampala" value={form.location} onChange={e=>set("location",e.target.value)} icon={<Icon name="location" size={14}/>}/></div>
           <div><label style={{ fontSize:13, fontWeight:600, color:"var(--text2)", display:"block", marginBottom:6 }}>Pay / Salary</label><Input placeholder="e.g. UGX 50,000/day" value={form.salary} onChange={e=>set("salary",e.target.value)}/></div>
         </div>
-        <div><label style={{ fontSize:13, fontWeight:600, color:"var(--text2)", display:"block", marginBottom:6 }}>Skills Required <span style={{fontWeight:400,color:"var(--text3)"}}>(comma separated)</span></label><Input placeholder="e.g. pipe fitting, welding, PVC" value={form.skills} onChange={e=>set("skills",e.target.value)}/></div>
+        <div><label style={{ fontSize:13, fontWeight:600, color:"var(--text2)", display:"block", marginBottom:6 }}>Skills <span style={{fontWeight:400,color:"var(--text3)"}}>(comma separated)</span></label><Input placeholder="e.g. pipe fitting, welding, PVC" value={form.skills} onChange={e=>set("skills",e.target.value)}/></div>
         <div><label style={{ fontSize:13, fontWeight:600, color:"var(--text2)", display:"block", marginBottom:6 }}>Job Description</label>
           <textarea value={form.description} onChange={e=>set("description",e.target.value)} placeholder="Describe the work, requirements, and any other details..."
             style={{ width:"100%", padding:"10px 14px", border:"1.5px solid var(--border)", borderRadius:8, fontSize:14, fontFamily:FONT, resize:"vertical", height:120, outline:"none", color:"var(--text)", background:"var(--input-bg)" }}
@@ -903,7 +854,6 @@ const MessagesPage = ({ user, setAuthMode }) => {
     <div style={{ maxWidth:480, margin:"80px auto", textAlign:"center", padding:"0 16px" }}>
       <div style={{ fontSize:40, marginBottom:16 }}>💬</div>
       <div style={{ fontWeight:700, fontSize:20, marginBottom:8, color:"var(--text)" }}>Your messages</div>
-      <div style={{ color:"var(--text2)", marginBottom:24 }}>Sign in to see your conversations.</div>
       <Btn onClick={()=>setAuthMode("signin")} full>Sign In</Btn>
     </div>
   );
@@ -969,14 +919,15 @@ const MessagesPage = ({ user, setAuthMode }) => {
   );
 };
 
-// ── PROFILE PAGE ──────────────────────────────────────────────────────────────
+// ── PROFILE PAGE (own profile) ────────────────────────────────────────────────
 
-const ProfilePage = ({ user, setAuthMode, onSignOut, mode, onSwitchMode }) => {
-  const [tab, setTab] = useState(mode==="employer"?"posted":"saved");
+const ProfilePage = ({ user, setAuthMode, onSignOut, mode, onSwitchMode, onViewOwnProfile }) => {
+  const [tab, setTab] = useState("saved");
   const [savedJobs, setSavedJobs] = useState([]);
   const [myApps, setMyApps] = useState([]);
   const [myJobs, setMyJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const ac = mode==="employer"?TEAL:ORANGE;
 
   useEffect(()=>{
     if (!user) return;
@@ -993,33 +944,30 @@ const ProfilePage = ({ user, setAuthMode, onSignOut, mode, onSwitchMode }) => {
     </div>
   );
 
-  const accentColor = mode==="employer"?TEAL:ORANGE;
-
   return (
     <div style={{ maxWidth:680, margin:"0 auto", padding:"24px 16px 120px" }}>
       <div style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:14, overflow:"hidden", marginBottom:16 }}>
-        <div style={{ height:80, background:`linear-gradient(135deg, ${accentColor} 0%, ${mode==="employer"?"#065F46":"#C85A10"} 100%)` }}/>
+        <div style={{ height:80, background:`linear-gradient(135deg, ${ac} 0%, ${mode==="employer"?"#065F46":"#C85A10"} 100%)` }}/>
         <div style={{ padding:"0 24px 24px" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginTop:-28, marginBottom:12 }}>
-            <div style={{ width:64, height:64, borderRadius:"50%", background:accentColor, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:800, fontSize:22, border:"3px solid var(--card)" }}>
+            <div style={{ width:64, height:64, borderRadius:"50%", background:ac, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:800, fontSize:22, border:"3px solid var(--card)" }}>
               {(user.name||"U").slice(0,2).toUpperCase()}
             </div>
             <div style={{ display:"flex", gap:8 }}>
+              <Btn variant="ghost" size="sm" onClick={onViewOwnProfile}>✏️ Edit Profile</Btn>
               <button onClick={onSignOut} style={{ padding:"7px 14px", borderRadius:8, border:"1.5px solid var(--border)", background:"var(--card)", cursor:"pointer", fontSize:13, fontWeight:600, color:"var(--text2)", fontFamily:FONT }}>Sign Out</button>
             </div>
           </div>
           <div style={{ fontWeight:800, fontSize:20, color:"var(--text)" }}>{user.name}</div>
-          <div style={{ fontSize:14, color:"var(--text2)", marginTop:2 }}>{user.email}</div>
-
-          {/* Current mode badge */}
-          <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:12 }}>
-            <Badge color={accentColor}>{mode==="employer"?"🏢 Employer Mode":"🔨 Worker Mode"}</Badge>
+          {/* No email shown — privacy */}
+          <div style={{ fontSize:13, color:"var(--text3)", marginTop:2 }}>{user.location||"Kampala, Uganda"}</div>
+          <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:10 }}>
+            <Badge color={ac}>{mode==="employer"?"🏢 Employer Mode":"🔨 Worker Mode"}</Badge>
             <span onClick={()=>onSwitchMode(mode==="employer"?"worker":"employer")}
-              style={{ fontSize:12, color:accentColor, cursor:"pointer", fontWeight:600 }}>
+              style={{ fontSize:12, color:ac, cursor:"pointer", fontWeight:600 }}>
               Switch to {mode==="employer"?"Worker":"Employer"} →
             </span>
           </div>
-
           <div style={{ display:"flex", gap:20, marginTop:16 }}>
             {[{n:myApps.length,l:"Applications"},{n:savedJobs.length,l:"Saved Jobs"},{n:myJobs.length,l:"Jobs Posted"}].map(s=>(
               <div key={s.l} style={{ textAlign:"center" }}>
@@ -1092,10 +1040,11 @@ const ProfilePage = ({ user, setAuthMode, onSignOut, mode, onSwitchMode }) => {
 function AppInner() {
   const [page, setPage] = useState("home");
   const [user, setUser] = useState(null);
-  const [mode, setMode] = useState("worker"); // "worker" | "employer"
+  const [mode, setMode] = useState("worker");
   const [switching, setSwitching] = useState(false);
   const [authMode, setAuthMode] = useState(null);
   const [selectedJob, setSelectedJob] = useState(null);
+  const [selectedWorker, setSelectedWorker] = useState(null); // worker userId
   const [applyJob, setApplyJob] = useState(null);
   const [savedIds, setSavedIds] = useState([]);
   const [unread, setUnread] = useState(0);
@@ -1105,8 +1054,7 @@ function AppInner() {
     supabase.auth.getSession().then(({ data:{ session } })=>{
       if (session?.user) {
         getProfile(session.user.id).then(profile=>{
-          const u = { ...session.user, name:profile?.name||session.user.email?.split("@")[0], ...profile };
-          setUser(u);
+          setUser({ ...session.user, name:profile?.name||session.user.email?.split("@")[0], ...profile });
           setMode(profile?.active_mode||"worker");
           fetchSavedJobIds(session.user.id).then(setSavedIds);
           countUnread(session.user.id).then(setUnread);
@@ -1118,7 +1066,7 @@ function AppInner() {
     });
   }, []);
 
-  const handleSwitchMode = async (newMode) => {
+  const handleSwitchMode = async(newMode)=>{
     setSwitching(true);
     setMode(newMode);
     setPage("home");
@@ -1129,28 +1077,55 @@ function AppInner() {
     setSwitching(false);
   };
 
-  const handleSave = async (jobId, isSaved) => {
+  const handleSave = async(jobId, isSaved)=>{
     if (!user) { setAuthMode("signin"); return; }
     if (isSaved) { await unsaveJob(user.id,jobId); setSavedIds(ids=>ids.filter(id=>id!==jobId)); }
     else { await saveJob(user.id,jobId); setSavedIds(ids=>[...ids,jobId]); }
   };
 
-  const handleJobClick = (job) => { setSelectedJob(job); setPage("detail"); };
-  const handleAuth = (u) => {
+  const handleJobClick = (job)=>{ setSelectedJob(job); setPage("detail"); };
+
+  // Open a worker's full profile
+  const handleWorkerClick = (workerId)=>{
+    setSelectedWorker(workerId);
+    setPage("workerprofile");
+  };
+
+  const handleAuth = (u)=>{
     setUser(u);
-    setMode(u.active_mode||u.primary_role==="employer"?"employer":"worker");
+    setMode(u.active_mode||"worker");
     fetchSavedJobIds(u.id).then(setSavedIds);
   };
+
   const handleSignOut = async()=>{ await signOut(); setUser(null); setSavedIds([]); setMode("worker"); setPage("home"); };
 
   const renderPage = ()=>{
-    if (page==="detail"&&selectedJob) return <JobDetail job={selectedJob} onBack={()=>{ setPage("jobs"); setSelectedJob(null); }} onApply={setApplyJob} onSave={handleSave} user={user} setAuthMode={setAuthMode} savedIds={savedIds} mode={mode}/>;
+    // Worker profile view (both own and others)
+    if (page==="workerprofile" && selectedWorker)
+      return <WorkerProfileView
+        userId={selectedWorker}
+        currentUser={user}
+        onBack={()=>{ setPage(mode==="employer"?"browse":"profile"); }}
+        onMessage={(w)=>{ setPage("messages"); }}
+      />;
+
+    if (page==="detail"&&selectedJob)
+      return <JobDetail job={selectedJob} onBack={()=>{ setPage("jobs"); setSelectedJob(null); }} onApply={setApplyJob} onSave={handleSave} user={user} setAuthMode={setAuthMode} savedIds={savedIds} mode={mode}/>;
+
     if (page==="jobs") return <JobsPage onJobClick={handleJobClick} onSave={handleSave} savedIds={savedIds}/>;
-    if (page==="browse") return <BrowseWorkers setPage={setPage}/>;
+    if (page==="browse") return <BrowseWorkers onWorkerClick={handleWorkerClick}/>;
     if (page==="post") return <PostGig user={user} setAuthMode={setAuthMode} onPosted={()=>setPage("home")}/>;
     if (page==="messages") return <MessagesPage user={user} setAuthMode={setAuthMode}/>;
-    if (page==="profile") return <ProfilePage user={user} setAuthMode={setAuthMode} onSignOut={handleSignOut} mode={mode} onSwitchMode={handleSwitchMode}/>;
-    return <HomePage setPage={setPage} onJobClick={handleJobClick} onSave={handleSave} user={user} setAuthMode={setAuthMode} savedIds={savedIds} mode={mode}/>;
+    if (page==="profile") return <ProfilePage
+      user={user} setAuthMode={setAuthMode} onSignOut={handleSignOut}
+      mode={mode} onSwitchMode={handleSwitchMode}
+      onViewOwnProfile={()=>{ if(user){ setSelectedWorker(user.id); setPage("workerprofile"); } }}
+    />;
+    return <HomePage
+      setPage={setPage} onJobClick={handleJobClick} onSave={handleSave}
+      user={user} setAuthMode={setAuthMode} savedIds={savedIds}
+      mode={mode} onWorkerClick={handleWorkerClick}
+    />;
   };
 
   return (
@@ -1168,8 +1143,7 @@ function AppInner() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AppInner />
+      <AppInner/>
     </ThemeProvider>
   );
 }
-
