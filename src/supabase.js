@@ -52,13 +52,16 @@ export async function switchMode(userId, mode) {
 }
 
 // ── IMAGE UPLOAD ──────────────────────────────────────────────────────────────
-
 export async function uploadImage(file, path) {
   const ext = file.name.split('.').pop()
   const fileName = `${path}/${Date.now()}.${ext}`
-  const { error } = await supabase.storage.from('tasqnow').upload(fileName, file, { upsert: true })
+  const { error } = await supabase.storage
+    .from('tasqnow')
+    .upload(fileName, file, { upsert: true })
   if (error) throw error
-  const { data } = supabase.storage.from('tasqnow').getPublicUrl(fileName)
+  const { data } = supabase.storage
+    .from('tasqnow')
+    .getPublicUrl(fileName)
   return data.publicUrl
 }
 
