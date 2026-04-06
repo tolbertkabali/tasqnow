@@ -69,12 +69,11 @@ const TasqScoreBadge = ({ score, size="md" }) => {
   const color = score>=70?"#10B981":score>=40?"#F59E0B":"#9CA3AF";
   const bg = score>=70?"#D1FAE5":score>=40?"#FEF3C7":"var(--bg3)";
   const label = score>=70?"Top Rated":score>=40?"Good":"New";
-  const big = size==="lg";
   return (
-    <div style={{ background:bg, borderRadius:12, padding:big?"14px 18px":"8px 12px", textAlign:"center", flexShrink:0 }}>
-      <div style={{ fontWeight:800, fontSize:big?32:20, color, lineHeight:1 }}>{score}</div>
-      <div style={{ fontSize:big?11:9, fontWeight:700, color, textTransform:"uppercase", letterSpacing:".06em", marginTop:2 }}>TasqScore</div>
-      <div style={{ fontSize:big?12:10, color, marginTop:2 }}>{label}</div>
+    <div style={{ background:bg, borderRadius:10, padding:"6px 10px", textAlign:"center", flexShrink:0 }}>
+      <div style={{ fontWeight:800, fontSize:15, color, lineHeight:1 }}>{score}</div>
+      <div style={{ fontSize:8, fontWeight:700, color, textTransform:"uppercase", letterSpacing:".06em", marginTop:2 }}>TasqScore</div>
+      <div style={{ fontSize:9, color, marginTop:1 }}>{label}</div>
     </div>
   );
 };
